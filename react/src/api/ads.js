@@ -1,16 +1,26 @@
 import api from './axios';
 
-// OpenAPI reference: POST /api/ads/  -> AdCreate
-export function createAd(payload) {
-  return api.post('/ads/', payload);
+export async function getMyAds(page = 1) {
+  const params = {};
+  if (page && page > 1) params.page = page;
+  const { data } = await api.get('/ads/mine/', { params });
+  return data;
 }
 
-// OpenAPI reference: GET /api/ads/{id}/
-export function getAd(id) {
-  return api.get(`/ads/${id}/`);
+export async function getFavoriteAds(page = 1) {
+  const params = {};
+  if (page && page > 1) params.page = page;
+  const { data } = await api.get('/ads/favorites/', { params });
+  return data;
 }
 
-// OpenAPI reference: PUT /api/ads/{id}/  -> AdCreate
-export function updateAd(id, payload) {
-  return api.put(`/ads/${id}/`, payload);
+export async function deleteAd(id) {
+  if (!id) throw new Error('Missing ad id');
+  await api.delete(`/ads/${id}/`);
+}
+
+export async function removeFavorite(id) {
+  if (!id) throw new Error('Missing ad id');
+  const { data } = await api.delete(`/ads/${id}/favorite/`);
+  return data;
 }
