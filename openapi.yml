@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Easyapp API
-  version: 1.0.0
+  version: 1.1.0
   description: API documentation for easyapp
 paths:
   /api/hello/:
@@ -11,8 +11,6 @@ paths:
       tags:
       - api
       security:
-      - cookieAuth: []
-      - basicAuth: []
       - {}
       responses:
         '200':
@@ -21,6 +19,312 @@ paths:
               schema:
                 $ref: '#/components/schemas/Message'
           description: ''
+  /api/register/:
+    post:
+      operationId: api_register_create
+      description: Register a new user and return auth token
+      tags:
+      - auth
+      security:
+      - {}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterPayload'
+      responses:
+        '201':
+          description: Registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthToken'
+  /api/me/:
+    get:
+      operationId: api_me_retrieve
+      description: Get current user profile
+      tags:
+      - auth
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/UserPublic'
+                required:
+                - user
+  /api/ads/:
+    get:
+      operationId: ads_list
+      description: List ads (only approved for non-staff). Supports search, filters and ordering.
+      tags:
+      - ads
+      security:
+      - {}
+      parameters:
+      - in: query
+        name: q
+        schema:
+          type: string
+        description: Search query by title/description
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: Alias for q
+      - in: query
+        name: min_price
+        schema:
+          type: number
+          format: float
+        description: Minimal price
+      - in: query
+        name: max_price
+        schema:
+          type: number
+          format: float
+        description: Maximal price
+      - in: query
+        name: ordering
+        schema:
+          type: string
+          enum: [price, -price, created_at, -created_at]
+        description: Ordering field
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAdList'
+    post:
+      operationId: ads_create
+      description: Create ad (stored as not approved)
+      tags:
+      - ads
+      security:
+      - tokenAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ad'
+  /api/ads/{id}/:
+    get:
+      operationId: ads_retrieve
+      tags:
+      - ads
+      description: Retrieve ad. Unapproved visible only to owner or staff.
+      security:
+      - {}
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ad'
+        '404':
+          description: Not found
+    put:
+      operationId: ads_update
+      tags:
+      - ads
+      security:
+      - tokenAuth: []
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdCreate'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ad'
+    patch:
+      operationId: ads_partial_update
+      tags:
+      - ads
+      security:
+      - tokenAuth: []
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdPartial'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ad'
+    delete:
+      operationId: ads_destroy
+      tags:
+      - ads
+      security:
+      - tokenAuth: []
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+      responses:
+        '204':
+          description: Deleted
+  /api/ads/mine/:
+    get:
+      operationId: ads_mine_list
+      tags:
+      - ads
+      description: List my ads
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAdList'
+  /api/ads/favorites/:
+    get:
+      operationId: ads_favorites_list
+      tags:
+      - ads
+      description: List my favorite ads
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAdList'
+  /api/ads/{id}/favorite/:
+    post:
+      operationId: ads_favorite_add
+      tags:
+      - ads
+      description: Add ad to favorites
+      security:
+      - tokenAuth: []
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FavoriteStatus'
+    delete:
+      operationId: ads_favorite_remove
+      tags:
+      - ads
+      description: Remove ad from favorites
+      security:
+      - tokenAuth: []
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FavoriteStatus'
+  /api/ads/{id}/approve/:
+    post:
+      operationId: ads_approve
+      tags:
+      - moderation
+      description: Approve ad (admin only)
+      security:
+      - tokenAuth: []
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ad'
+  /api/ads/{id}/reject/:
+    post:
+      operationId: ads_reject
+      tags:
+      - moderation
+      description: Reject ad (admin only)
+      security:
+      - tokenAuth: []
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ad'
 components:
   schemas:
     Message:
@@ -36,7 +340,125 @@ components:
       required:
       - message
       - timestamp
+    UserPublic:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+      required: [id, username]
+    RegisterPayload:
+      type: object
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+      required: [username, password]
+    AuthToken:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          $ref: '#/components/schemas/UserPublic'
+      required: [token, user]
+    Ad:
+      type: object
+      properties:
+        id:
+          type: integer
+        owner:
+          $ref: '#/components/schemas/UserPublic'
+        title:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+          format: float
+        is_approved:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        is_owner:
+          type: boolean
+        is_favorited:
+          type: boolean
+        favorites_count:
+          type: integer
+      required:
+      - id
+      - owner
+      - title
+      - description
+      - price
+      - is_approved
+      - created_at
+      - updated_at
+      - is_owner
+      - is_favorited
+      - favorites_count
+    AdCreate:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+          format: float
+      required: [title, description, price]
+    AdPartial:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+          format: float
+      additionalProperties: false
+    FavoriteStatus:
+      type: object
+      properties:
+        is_favorited:
+          type: boolean
+        favorites_count:
+          type: integer
+      required: [is_favorited, favorites_count]
+    PaginatedAdList:
+      type: object
+      properties:
+        count:
+          type: integer
+        next:
+          type: string
+          nullable: true
+        previous:
+          type: string
+          nullable: true
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Ad'
+      required: [count, results]
   securitySchemes:
+    tokenAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: Token
     basicAuth:
       type: http
       scheme: basic
