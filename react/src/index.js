@@ -8,6 +8,7 @@ import { ConfigProvider } from 'antd';
 import ruRU from 'antd/locale/ru_RU';
 import dayjs from 'dayjs';
 import 'dayjs/locale/ru';
+import 'antd/dist/reset.css';
 import ErrorBoundary from './ErrorBoundary';
 import { AuthProvider } from './context/AuthContext';
 
