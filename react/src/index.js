@@ -9,6 +9,7 @@ import ruRU from 'antd/locale/ru_RU';
 import dayjs from 'dayjs';
 import 'dayjs/locale/ru';
 import ErrorBoundary from './ErrorBoundary';
+import { AuthProvider } from './context/AuthContext';
 
 dayjs.locale('ru');
 
@@ -17,7 +18,9 @@ root.render(
   <ConfigProvider locale={ruRU}>
     <BrowserRouter>
       <ErrorBoundary>
-        <App />
+        <AuthProvider>
+          <App />
+        </AuthProvider>
       </ErrorBoundary>
     </BrowserRouter>
   </ConfigProvider>
