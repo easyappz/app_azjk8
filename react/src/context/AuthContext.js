@@ -1,40 +1,15 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import api from '../api/axios';
+import { message } from 'antd';
+import * as authApi from '../api/auth';
 
 const AuthContext = createContext({
   user: null,
   token: null,
   loading: false,
-  login: async () => {},
+  loginWithToken: async () => {},
   register: async () => {},
   logout: () => {},
 });
-
-const ME_ENDPOINTS = ['auth/me/', 'me/'];
-const REGISTER_ENDPOINTS = ['auth/register/', 'register/'];
-const LOGIN_ENDPOINTS = ['auth/login/'];
-
-async function trySequential(endpoints, method, payload) {
-  let lastError = null;
-  for (const ep of endpoints) {
-    try {
-      if (method === 'get') {
-        return await api.get(`/${ep}`);
-      }
-      if (method === 'post') {
-        return await api.post(`/${ep}`, payload);
-      }
-    } catch (err) {
-      lastError = err;
-      if (err?.response && (err.response.status === 404 || err.response.status === 405)) {
-        continue;
-      }
-      throw err;
-    }
-  }
-  if (lastError) throw lastError;
-  throw new Error('No endpoint available');
-}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -60,46 +35,47 @@ export function AuthProvider({ children }) {
   }, []);
 
   const fetchMe = useCallback(async () => {
-    const res = await trySequential(ME_ENDPOINTS, 'get');
+    const res = await authApi.me();
     const data = res?.data;
-    const me = data?.user || data; // allow { user: {...} } or direct user object
+    const me = data?.user || data;
     if (!me) throw new Error('Invalid me response');
     setUser(me);
     localStorage.setItem('user', JSON.stringify(me));
     return me;
   }, []);
 
-  const login = useCallback(async (username, password) => {
+  const loginWithToken = useCallback(async (providedToken) => {
     setLoading(true);
     try {
-      const res = await trySequential(LOGIN_ENDPOINTS, 'post', { username, password });
-      const { token: receivedToken } = res.data || {};
-      if (!receivedToken) {
-        throw new Error('Token is missing in login response');
-      }
-      persistAuth(receivedToken, null);
+      if (!providedToken) throw new Error('Токен не задан');
+      persistAuth(providedToken, null);
       const me = await fetchMe();
-      return { token: receivedToken, user: me };
+      message.success('Вход выполнен');
+      return { token: providedToken, user: me };
+    } catch (e) {
+      clearAuth();
+      throw e;
     } finally {
       setLoading(false);
     }
-  }, [fetchMe, persistAuth]);
+  }, [fetchMe, persistAuth, clearAuth]);
 
   const register = useCallback(async ({ username, email, password }) => {
     setLoading(true);
     try {
-      const res = await trySequential(REGISTER_ENDPOINTS, 'post', { username, email, password });
+      const res = await authApi.register({ username, email, password });
       const { token: receivedToken, user: receivedUser } = res.data || {};
       if (!receivedToken) {
-        throw new Error('Token is missing in register response');
+        throw new Error('Сервер не вернул токен');
       }
-      // Prefer server-provided user; if absent, fetch me
       if (receivedUser) {
         persistAuth(receivedToken, receivedUser);
+        message.success('Регистрация успешна');
         return { token: receivedToken, user: receivedUser };
       }
       persistAuth(receivedToken, null);
       const me = await fetchMe();
+      message.success('Регистрация успешна');
       return { token: receivedToken, user: me };
     } finally {
       setLoading(false);
@@ -108,6 +84,7 @@ export function AuthProvider({ children }) {
 
   const logout = useCallback(() => {
     clearAuth();
+    message.info('Вы вышли из аккаунта');
   }, [clearAuth]);
 
   useEffect(() => {
@@ -124,7 +101,6 @@ export function AuthProvider({ children }) {
           try {
             await fetchMe();
           } catch (e) {
-            // If token invalid, clear auth
             clearAuth();
           }
         }
@@ -136,7 +112,7 @@ export function AuthProvider({ children }) {
     return () => { isMounted = false; };
   }, [fetchMe, clearAuth]);
 
-  const value = useMemo(() => ({ user, token, login, register, logout, loading }), [user, token, login, register, logout, loading]);
+  const value = useMemo(() => ({ user, token, loginWithToken, register, logout, loading }), [user, token, loginWithToken, register, logout, loading]);
 
   return (
     <AuthContext.Provider value={value}>

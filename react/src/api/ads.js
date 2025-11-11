@@ -1,26 +1,49 @@
 import api from './axios';
 
-export async function getMyAds(page = 1) {
-  const params = {};
-  if (page && page > 1) params.page = page;
-  const { data } = await api.get('/ads/mine/', { params });
-  return data;
+export function list(params = {}) {
+  return api.get('/ads/', { params });
 }
 
-export async function getFavoriteAds(page = 1) {
-  const params = {};
-  if (page && page > 1) params.page = page;
-  const { data } = await api.get('/ads/favorites/', { params });
-  return data;
+export function retrieve(id) {
+  return api.get(`/ads/${id}/`);
 }
 
-export async function deleteAd(id) {
-  if (!id) throw new Error('Missing ad id');
-  await api.delete(`/ads/${id}/`);
+export function create(payload) {
+  return api.post('/ads/', payload);
 }
 
-export async function removeFavorite(id) {
-  if (!id) throw new Error('Missing ad id');
-  const { data } = await api.delete(`/ads/${id}/favorite/`);
-  return data;
+export function update(id, payload) {
+  return api.put(`/ads/${id}/`, payload);
+}
+
+export function partialUpdate(id, payload) {
+  return api.patch(`/ads/${id}/`, payload);
+}
+
+export function destroy(id) {
+  return api.delete(`/ads/${id}/`);
+}
+
+export function mine() {
+  return api.get('/ads/mine/');
+}
+
+export function favorites() {
+  return api.get('/ads/favorites/');
+}
+
+export function favoriteAdd(id) {
+  return api.post(`/ads/${id}/favorite/`);
+}
+
+export function favoriteRemove(id) {
+  return api.delete(`/ads/${id}/favorite/`);
+}
+
+export function approve(id) {
+  return api.post(`/ads/${id}/approve/`);
+}
+
+export function reject(id) {
+  return api.post(`/ads/${id}/reject/`);
 }
